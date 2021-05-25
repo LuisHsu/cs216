@@ -2,9 +2,6 @@ import cv2
 import numpy as np
 from os import listdir, path
 from sys import argv
-import matplotlib.pyplot as plt
-
-from numpy.random import random
 
 # Constants
 epsilon = 0.1

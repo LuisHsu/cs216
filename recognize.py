@@ -9,6 +9,7 @@ from numpy.random import random
 # Constants
 epsilon = 0.1
 thresh = 0.8
+minMatches = 4
 
 # Read test image
 testImage = cv2.imread(argv[2])
@@ -64,12 +65,15 @@ for match in goodMatches:
     for contourIdx, contour in enumerate(maskContours):
         if cv2.pointPolygonTest(contour, testKp[match.queryIdx].pt, False) != -1:
             recognition[match.imgIdx, contourIdx] += 1
-# Filter out frequencies that's not the maxinum in a template
+# Filter frequencies
 for tempIdx, tempFreq in enumerate(recognition):
-    maxFreq = np.max(tempFreq)
-    for contIdx, contFreq in enumerate(tempFreq):
-        if contFreq != maxFreq:
-            recognition[tempIdx, contIdx] = 0
+    if np.sum(tempFreq) < minMatches:
+        recognition[tempIdx] *= np.zeros(recognition.shape[1]).astype(recognition.dtype)
+    else:
+        maxFreq = np.max(tempFreq)
+        for contIdx, contFreq in enumerate(tempFreq):
+            if contFreq != maxFreq:
+                recognition[tempIdx, contIdx] = 0
 # Transpose recognition
 recognition = recognition.transpose()
 
@@ -88,6 +92,6 @@ for tempIdx, template in enumerate(templates):
     )
     # Draw contour if recognized
     for contIdx, contour in enumerate(maskContours):
-        if tempIdx == np.argmax(recognition[contIdx]):
+        if (np.sum(recognition[contIdx]) >= minMatches) and (tempIdx == np.argmax(recognition[contIdx])):
             cv2.drawContours(matchImage, contour, -1, (255,0, 0), 3)
     cv2.imwrite(path.join("output", "match_{}.jpg".format(tempIdx)), matchImage) # FIXME: output SIFT matches

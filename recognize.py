@@ -4,23 +4,22 @@ from os import listdir, path
 from sys import argv
 
 # Constants
-epsilon = 0.1
-thresh = 0.8
-minMatches = 6
+thresh = 0.8 # Threshold of distance for good matches
+minMatches = 6 # Minimun matches required that a contour needs
 
 # Read test image
 testImage = cv2.imread(argv[2])
 
 # Create mask from contour
-edges = cv2.Canny(cv2.cvtColor(cv2.blur(testImage, (3, 3)), cv2.COLOR_BGR2GRAY), 100, 255)
+edges = cv2.Canny(cv2.cvtColor(cv2.blur(testImage, (3, 3)), cv2.COLOR_BGR2GRAY), 100, 255) # Kernel size [3, 3], threshold 100-255
 contours, _ = cv2.findContours(edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
 mask = np.zeros(testImage.shape[:2], dtype=np.uint8)
 for contour in contours:
-    mask = cv2.fillPoly(mask, [np.reshape(contour, (contour.shape[0], 2))], (255))
+    mask = cv2.fillPoly(mask, [np.reshape(contour, (contour.shape[0], 2))], (255)) 
 
-cv2.imwrite("mask.jpg", mask) # FIXME: output mask
-cv2.imwrite("edges.jpg", edges) # FIXME: output edges
-cv2.imwrite("contour.jpg", cv2.drawContours(np.copy(testImage), contours, -1, (0,255,0), 3)) # FIXME: output contours
+cv2.imwrite("mask.jpg", mask) # [OUTPUT] mask
+cv2.imwrite("edges.jpg", edges) # [OUTPUT] edges
+cv2.imwrite("contour.jpg", cv2.drawContours(np.copy(testImage), contours, -1, (0,255,0), 3)) # [OUTPUT] contours with green color
 
 # Get contour of mask
 maskContours, _ = cv2.findContours(mask, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
@@ -32,9 +31,9 @@ testKpB, testDesB = sift.detectAndCompute(splitedTest[0], mask)
 testKpG, testDesG = sift.detectAndCompute(splitedTest[1], mask)
 testKpR, testDesR = sift.detectAndCompute(splitedTest[2], mask)
 
-cv2.imwrite("test_sift_B.jpg", cv2.drawKeypoints(np.copy(testImage), testKpB, testImage)) # FIXME: output SIFT feature of test image
-cv2.imwrite("test_sift_G.jpg", cv2.drawKeypoints(np.copy(testImage), testKpG, testImage)) # FIXME: output SIFT feature of test image
-cv2.imwrite("test_sift_R.jpg", cv2.drawKeypoints(np.copy(testImage), testKpR, testImage)) # FIXME: output SIFT feature of test image
+cv2.imwrite("test_sift_B.jpg", cv2.drawKeypoints(np.copy(testImage), testKpB, testImage)) # [OUTPUT] SIFT feature of test image
+cv2.imwrite("test_sift_G.jpg", cv2.drawKeypoints(np.copy(testImage), testKpG, testImage)) # [OUTPUT] SIFT feature of test image
+cv2.imwrite("test_sift_R.jpg", cv2.drawKeypoints(np.copy(testImage), testKpR, testImage)) # [OUTPUT] SIFT feature of test image
 
 # Create FLANN matcher
 FLANN_INDEX_KDTREE = 1
@@ -83,7 +82,7 @@ for matchR in goodMatchesR:
         if cv2.pointPolygonTest(contour, testKpR[matchR.queryIdx].pt, False) != -1:
             recognition[matchR.imgIdx, contourIdx] += 1
 
-# Filter frequencies
+# Wipe out lesser frequencies
 for tempIdx, tempFreq in enumerate(recognition):
     if np.sum(tempFreq) < minMatches:
         recognition[tempIdx] *= np.zeros(recognition.shape[1]).astype(recognition.dtype)
@@ -117,7 +116,7 @@ for tempIdx, template in enumerate(templates):
     tempImageR[1] *= 0
     tempImageR = tempImageR.transpose((1, 2, 0))
 
-    # Draw matcges
+    # Draw matches
     matchesB = [m for m in goodMatchesB if m.imgIdx == tempIdx]
     matchImage = cv2.drawMatches(
         testImage, testKpB,
@@ -152,4 +151,4 @@ for tempIdx, template in enumerate(templates):
     for contIdx, contour in enumerate(maskContours):
         if (np.sum(recognition[contIdx]) >= minMatches) and (tempIdx == np.argmax(recognition[contIdx])):
             cv2.drawContours(matchImage, contour, -1, (0, 255, 255), 3)
-    cv2.imwrite(path.join("output", "match_{}.jpg".format(tempIdx)), matchImage) # FIXME: output SIFT matches
+    cv2.imwrite(path.join("output", "match_{}.jpg".format(tempIdx)), matchImage) # [OUTPUT] SIFT matches
